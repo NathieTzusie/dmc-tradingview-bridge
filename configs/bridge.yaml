@@ -1,0 +1,73 @@
+discord:
+  alerts_channel: ''
+  fills_channel: ''
+  signals_channel: ''
+exchanges:
+  binance:
+    credentials:
+      api_key: ''
+      api_secret: ''
+      testnet: true
+    enabled: true
+    rate_limit_rps: 5.0
+    symbols:
+    - BTC/USDT:USDT
+    - ETH/USDT:USDT
+  bybit:
+    credentials:
+      api_key: ''
+      api_secret: ''
+      testnet: true
+    enabled: false
+    rate_limit_rps: 5.0
+    symbols:
+    - BTC/USDT:USDT
+    - ETH/USDT:USDT
+  gate:
+    credentials:
+      api_key: ''
+      api_secret: ''
+      testnet: true
+    enabled: false
+    rate_limit_rps: 5.0
+    symbols:
+    - BTC/USDT:USDT
+    - ETH/USDT:USDT
+  okx:
+    credentials:
+      api_key: ''
+      api_passphrase: ''
+      api_secret: ''
+      testnet: true
+    enabled: false
+    rate_limit_rps: 5.0
+    symbols:
+    - BTC/USDT:USDT
+    - ETH/USDT:USDT
+risk:
+  daily_max_loss_usdt: 100
+  emergency_stop: false
+  global_max_positions: 3
+  global_max_usdt: 1000
+  max_leverage_ratio: 5.0
+  require_confirmation: false
+state_db_path: data/live_bridge_state.db
+strategies:
+  btp_30m:
+    allow_reverse: true
+    default_leverage: 5
+    exchange: binance
+    max_position_usdt: 500
+    signal_cooldown_sec: 5.0
+    strategy_id: btp_30m
+    symbol: ETH/USDT:USDT
+  runner_5m:
+    allow_reverse: true
+    default_leverage: 5
+    exchange: binance
+    max_position_usdt: 500
+    signal_cooldown_sec: 5.0
+    strategy_id: runner_5m
+    symbol: ETH/USDT:USDT
+webhook_auth_token: ''
+webhook_port: 8080

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DMC TV Bridge — Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh}
+.header{background:#161b22;border-bottom:1px solid #30363d;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;color:#58a6ff}
+.header .status{display:flex;gap:12px;align-items:center}
+.badge{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.badge.green{background:#1a3a2a;color:#3fb950}
+.badge.red{background:#3a1a1a;color:#f85149}
+.badge.gray{background:#21262d;color:#8b949e}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.card{background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+.card-header{padding:12px 16px;border-bottom:1px solid #30363d;font-weight:600;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.card-body{padding:16px}
+.stat-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #21262d}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:#8b949e}
+.stat-value{font-weight:600}
+.positive{color:#3fb950}
+.negative{color:#f85149}
+table{width:100%;font-size:13px;border-collapse:collapse}
+th{text-align:left;padding:8px 12px;border-bottom:2px solid #30363d;color:#8b949e;font-weight:600}
+td{padding:8px 12px;border-bottom:1px solid #21262d}
+tr.data-row{cursor:pointer}
+tr.data-row:hover{background:#1c2128}
+tr.detail-row{background:#0d1117;display:none}
+tr.detail-row.open{display:table-row}
+tr.detail-row td{padding:12px 16px;font-size:12px;color:#8b949e}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px}
+.detail-item{background:#161b22;padding:8px 12px;border-radius:6px}
+.detail-item .label{font-size:10px;color:#484f58;margin-bottom:2px}
+.detail-item .value{font-size:13px;color:#c9d1d9;font-weight:600}
+.btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.btn-danger{background:#da3633;color:#fff}.btn-danger:hover{background:#f85149}
+.btn-success{background:#238636;color:#fff}.btn-success:hover{background:#2ea043}
+.btn-warning{background:#9e6a03;color:#fff}.btn-warning:hover{background:#d2991d}
+.btn-sm{padding:4px 10px;font-size:11px}
+.actions{display:flex;gap:8px;margin-top:12px}
+.refresh{color:#8b949e;font-size:11px}
+.full-width{grid-column:1/-1}
+#emergency-bar{background:#da3633;color:#fff;text-align:center;padding:10px;font-weight:700;display:none;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* Exchange status */
+.ex-list{display:flex;flex-direction:column;gap:6px}
+.ex-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;background:#0d1117;border:1px solid #21262d}
+.ex-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ex-dot.green{background:#3fb950}
+.ex-dot.orange{background:#d2991d}
+.ex-dot.gray{background:#484f58}
+.ex-name{font-weight:600;font-size:13px;min-width:80px}
+.ex-balance{color:#3fb950;font-size:13px;margin-left:auto}
+.ex-error{font-size:11px;color:#d2991d;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ex-configure{margin-left:8px;padding:2px 8px;font-size:11px;border-radius:4px;border:1px solid #30363d;background:transparent;color:#8b949e;cursor:pointer}
+.ex-configure:hover{border-color:#58a6ff;color:#58a6ff}
+
+/* Modals */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal-box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:24px;width:380px;max-width:95vw}
+.modal-box h2{font-size:15px;margin-bottom:16px;color:#c9d1d9}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;color:#8b949e;margin-bottom:4px}
+.form-group input{width:100%;padding:8px 10px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:13px}
+.form-group input:focus{outline:none;border-color:#58a6ff}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.nginx-note{text-align:center;padding:12px;color:#484f58;font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- Token Modal -->
+<div id="token-modal" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <h2>🔐 请输入 Auth Token</h2>
+    <div class="form-group">
+      <input id="token-input" type="password" placeholder="TV_BRIDGE_AUTH_TOKEN"
+             onkeydown="if(event.key==='Enter')submitToken()" autofocus/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success btn-sm" onclick="submitToken()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exchange Config Modal -->
+<div id="ex-modal" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <h2 id="ex-modal-title">配置交易所</h2>
+    <div class="form-group">
+      <label>API Key</label>
+      <input id="ex-api-key" type="text" placeholder="API Key"/>
+    </div>
+    <div class="form-group">
+      <label>API Secret</label>
+      <input id="ex-api-secret" type="password" placeholder="API Secret"/>
+    </div>
+    <div class="form-group" id="ex-passphrase-group">
+      <label>Passphrase（OKX / KuCoin / Bitget / Bitunix）</label>
+      <input id="ex-passphrase" type="password" placeholder="Passphrase（如不需要留空）"/>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="ex-testnet" checked style="margin-right:6px">使用 Testnet</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" style="background:#21262d;color:#c9d1d9" onclick="closeExModal()">取消</button>
+      <button class="btn btn-success btn-sm" onclick="saveExConfig()">保存并重连</button>
+    </div>
+  </div>
+</div>
+
+<div id="emergency-bar">🚨 EMERGENCY STOP ACTIVE — 所有开仓被阻止</div>
+
+<div class="header">
+  <h1>🦞 DMC TV Bridge</h1>
+  <div class="status">
+    <span id="emergency-status" class="badge green">Normal</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="grid">
+    <!-- 交易所状态 -->
+    <div class="card">
+      <div class="card-header">🔗 交易所状态</div>
+      <div class="card-body">
+        <div class="ex-list" id="exchange-list"></div>
+      </div>
+    </div>
+
+    <!-- 风控 -->
+    <div class="card">
+      <div class="card-header">🛡️ 风控</div>
+      <div class="card-body">
+        <div class="stat-row"><span class="stat-label">活跃持仓</span><span class="stat-value" id="active-positions">—</span></div>
+        <div class="stat-row"><span class="stat-label">今日 PnL</span><span class="stat-value" id="daily-pnl">—</span></div>
+        <div class="stat-row"><span class="stat-label">信号已处理</span><span class="stat-value" id="signals-total">—</span></div>
+        <div class="actions">
+          <button class="btn btn-danger btn-sm" onclick="emergencyStop()">🚨 紧急停止</button>
+          <button class="btn btn-success btn-sm" onclick="resumeTrading()">✅ 恢复交易</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 账户余额 -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card full-width">
+      <div class="card-header">💰 账户余额 <span class="refresh" id="balance-refresh"></span></div>
+      <div class="card-body" id="balances"></div>
+    </div>
+  </div>
+
+  <!-- 活跃持仓 -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card full-width">
+      <div class="card-header">📦 活跃持仓 <span class="refresh" id="positions-refresh"></span></div>
+      <div class="card-body">
+        <table id="positions-table" style="display:none">
+          <thead><tr>
+            <th>策略</th><th>交易所</th><th>交易对</th><th>方向</th>
+            <th>数量</th><th>入场价</th><th>保证金</th><th>已实现PnL</th><th></th>
+          </tr></thead>
+          <tbody id="positions-body"></tbody>
+        </table>
+        <div id="no-positions" style="color:#8b949e;text-align:center;padding:20px">无活跃持仓</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 最近交易 -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card full-width">
+      <div class="card-header">📜 最近交易 <span class="refresh" id="trades-refresh"></span></div>
+      <div class="card-body">
+        <table id="trades-table" style="display:none">
+          <thead><tr>
+            <th>时间</th><th>策略</th><th>交易所</th><th>交易对</th>
+            <th>方向</th><th>动作</th><th>数量</th><th>价格</th><th>PnL</th>
+          </tr></thead>
+          <tbody id="trades-body"></tbody>
+        </table>
+        <div id="no-trades" style="color:#8b949e;text-align:center;padding:20px">暂无交易记录</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 对账 -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card full-width">
+      <div class="card-header">🔍 仓位对账 <span class="refresh" id="recon-refresh"></span></div>
+      <div class="card-body" id="reconciliation"></div>
+    </div>
+  </div>
+</div>
+<div class="nginx-note">⚠️ 建议通过 Nginx Basic Auth 额外保护此页面 &nbsp;|
+  <a href="#" onclick="clearToken()" style="color:#484f58">重新设置 Token</a></div>
+
+<script>
+const POLL_MS = 5000;
+let token = '';
+
+// 所有已知支持的交易所（用于显示完整列表）
+const ALL_EXCHANGES = [
+  {id:'binance',  label:'Binance',  needsPassphrase:false},
+  {id:'bybit',    label:'Bybit',    needsPassphrase:false},
+  {id:'okx',      label:'OKX',      needsPassphrase:true},
+  {id:'gate',     label:'Gate.io',  needsPassphrase:false},
+  {id:'bitget',   label:'Bitget',   needsPassphrase:true},
+  {id:'kucoin',   label:'KuCoin',   needsPassphrase:true},
+  {id:'bitunix',  label:'Bitunix',  needsPassphrase:true},
+];
+
+function fmt(n,d=2){return Number(n||0).toFixed(d)}
+function fmtPnL(n){const v=Number(n||0).toFixed(2);return Number(v)>=0?`<span class="positive">+$${v}</span>`:`<span class="negative">-$${Math.abs(v)}</span>`}
+
+function fmtTime(ts){
+  if(!ts) return '—';
+  let s=String(ts).trim();
+  if(!s.includes('T')&&s.includes(' ')) s=s.replace(' ','T');
+  if(!/[zZ]|[+-]\d\d:\d\d$/.test(s)) s+='Z';
+  const d=new Date(s);
+  if(isNaN(d.getTime())) return ts;
+  return d.toLocaleString('zh-CN',{hour12:false,
+    year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function timeAgo(ts){
+  if(!ts) return '—';
+  let s=String(ts).trim();
+  if(!s.includes('T')&&s.includes(' ')) s=s.replace(' ','T');
+  if(!/[zZ]|[+-]\d\d:\d\d$/.test(s)) s+='Z';
+  const d=new Date(s);
+  if(isNaN(d.getTime())) return ts;
+  const sec=Math.floor((Date.now()-d.getTime())/1000);
+  if(sec<60) return sec+'s ago';
+  if(sec<3600) return Math.floor(sec/60)+'m ago';
+  if(sec<86400) return Math.floor(sec/3600)+'h ago';
+  return Math.floor(sec/86400)+'d ago';
+}
+
+async function fetchAuth(path,opts={}){
+  const h=token?{'X-Auth-Token':token}:{};
+  const r=await fetch(path,{headers:h,...opts});
+  return r.json();
+}
+async function fetchAuthPost(path,body=null){
+  const h={'X-Auth-Token':token};
+  if(body) h['Content-Type']='application/json';
+  return fetch(path,{method:'POST',headers:h,body:body?JSON.stringify(body):null}).then(r=>r.json());
+}
+
+async function refresh(){
+  try{
+    const data=await fetchAuth('/api/dashboard');
+    render(data);
+  }catch(e){console.error('Dashboard fetch error:',e)}
+}
+
+function render(d){
+  // Emergency bar
+  document.getElementById('emergency-bar').style.display=d.emergency_stop?'block':'none';
+  document.getElementById('emergency-status').textContent=d.emergency_stop?'EMERGENCY STOP':'Normal';
+  document.getElementById('emergency-status').className=d.emergency_stop?'badge red':'badge green';
+
+  // 交易所状态（显示所有已知交易所）
+  const exData=d.exchanges||{};
+  let exHtml='';
+  for(const ex of ALL_EXCHANGES){
+    const info=exData[ex.id];
+    let dot,balText,errText='';
+    if(!info){
+      dot='gray'; balText='<span style="color:#484f58;font-size:11px">未配置</span>';
+    } else if(info.connected){
+      dot='green'; balText=`<span class="ex-balance">$${fmt(info.balance,2)}</span>`;
+    } else {
+      dot='orange';
+      balText='<span style="color:#d2991d;font-size:11px">连接失败</span>';
+      errText=`<span class="ex-error" title="${info.error_message||''}">${(info.error_message||'').substring(0,50)}</span>`;
+    }
+    exHtml+=`<div class="ex-item">
+      <span class="ex-dot ${dot}"></span>
+      <span class="ex-name">${ex.label}</span>
+      ${errText}
+      ${balText}
+      <button class="ex-configure" onclick="openExModal('${ex.id}','${ex.label}',${ex.needsPassphrase})">配置</button>
+    </div>`;
+  }
+  document.getElementById('exchange-list').innerHTML=exHtml;
+
+  // 风控
+  document.getElementById('active-positions').textContent=d.active_positions||0;
+  document.getElementById('daily-pnl').innerHTML=fmtPnL(d.daily_pnl);
+  document.getElementById('signals-total').textContent=d.signals_total||0;
+
+  // 账户余额（仅已连接）
+  let balHtml='<div style="display:flex;gap:16px;flex-wrap:wrap">';
+  let hasBalance=false;
+  for(const[name,ex] of Object.entries(exData)){
+    if(ex.connected){
+      hasBalance=true;
+      balHtml+=`<div style="background:#0d1117;padding:12px 16px;border-radius:6px;border:1px solid #21262d">
+        <div style="font-size:11px;color:#484f58;margin-bottom:4px">${name.toUpperCase()}</div>
+        <div style="font-size:20px;color:#3fb950;font-weight:700">$${fmt(ex.balance,2)}</div>
+      </div>`;
+    }
+  }
+  if(!hasBalance) balHtml+='<span style="color:#484f58">暂无已连接交易所</span>';
+  document.getElementById('balances').innerHTML=balHtml+'</div>';
+  document.getElementById('balance-refresh').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+
+  // 活跃持仓（可点击展开）
+  const posBody=document.getElementById('positions-body');
+  const posTable=document.getElementById('positions-table');
+  const noPos=document.getElementById('no-positions');
+  posBody.innerHTML='';
+  const pos=d.positions||[];
+  if(pos.length){
+    posTable.style.display=''; noPos.style.display='none';
+    pos.forEach((p,i)=>{
+      const sideColor=p.side==='buy'?'#3fb950':'#f85149';
+      posBody.innerHTML+=`
+        <tr class="data-row" onclick="toggleRow('pos-detail-${i}')">
+          <td>${p.strategy_id}</td>
+          <td>${p.exchange}</td>
+          <td>${p.symbol}</td>
+          <td style="color:${sideColor}">${p.side.toUpperCase()}</td>
+          <td>${p.quantity}</td>
+          <td>$${fmt(p.entry_price,2)}</td>
+          <td>$${fmt(p.margin,2)}</td>
+          <td>${fmtPnL(p.realized_pnl)}</td>
+          <td style="color:#8b949e;font-size:11px">▼</td>
+        </tr>
+        <tr class="detail-row" id="pos-detail-${i}">
+          <td colspan="9">
+            <div class="detail-grid">
+              <div class="detail-item"><div class="label">开仓时间</div><div class="value">${fmtTime(p.entry_time)}</div></div>
+              <div class="detail-item"><div class="label">杠杆</div><div class="value">${p.leverage}x</div></div>
+              <div class="detail-item"><div class="label">占用保证金</div><div class="value">$${fmt(p.margin,2)}</div></div>
+              <div class="detail-item"><div class="label">方向</div><div class="value" style="color:${sideColor}">${p.side.toUpperCase()}</div></div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="manualClose('${p.strategy_id}','${p.exchange}','${p.symbol}')">
+              🚨 手动平仓
+            </button>
+          </td>
+        </tr>`;
+    });
+  } else {
+    posTable.style.display='none'; noPos.style.display='';
+  }
+  document.getElementById('positions-refresh').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+
+  // 最近交易（可点击展开）
+  const tradesBody=document.getElementById('trades-body');
+  const tradesTable=document.getElementById('trades-table');
+  const noTrades=document.getElementById('no-trades');
+  tradesBody.innerHTML='';
+  const trades=d.recent_trades||[];
+  if(trades.length){
+    tradesTable.style.display=''; noTrades.style.display='none';
+    trades.slice(0,20).forEach((t,i)=>{
+      const side=t.side==='buy'?'<span class="positive">LONG</span>':'<span class="negative">SHORT</span>';
+      const isOpen=(t.action||'').toLowerCase()==='open';
+      const pnlHtml=isOpen?'<span style="color:#484f58">—</span>':fmtPnL(t.realized_pnl);
+      tradesBody.innerHTML+=`
+        <tr class="data-row" onclick="toggleRow('trade-detail-${i}')">
+          <td style="font-size:11px;color:#8b949e">${timeAgo(t.created_at)}</td>
+          <td>${t.strategy_id}</td>
+          <td>${t.exchange}</td>
+          <td>${t.symbol}</td>
+          <td>${side}</td>
+          <td>${t.action}</td>
+          <td>${t.quantity}</td>
+          <td>$${fmt(t.price,2)}</td>
+          <td>${pnlHtml}</td>
+        </tr>
+        <tr class="detail-row" id="trade-detail-${i}">
+          <td colspan="9">
+            <div class="detail-grid">
+              <div class="detail-item"><div class="label">时间</div><div class="value">${fmtTime(t.created_at)}</div></div>
+              <div class="detail-item"><div class="label">手续费</div><div class="value">$${fmt(t.fee,4)}</div></div>
+              <div class="detail-item"><div class="label">交易所订单ID</div><div class="value" style="font-size:11px">${t.exchange_order_id||'—'}</div></div>
+              <div class="detail-item"><div class="label">信号ID</div><div class="value" style="font-size:11px">${t.signal_id||'—'}</div></div>
+            </div>
+          </td>
+        </tr>`;
+    });
+  } else {
+    tradesTable.style.display='none'; noTrades.style.display='';
+  }
+  document.getElementById('trades-refresh').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+
+  // 对账
+  let reconHtml='';
+  for(const[ex,r] of Object.entries(d.reconciliation||{})){
+    const icon=r.is_clean?'✅':'⚠️';
+    reconHtml+=`<div class="stat-row">
+      <span class="stat-label">${icon} ${ex}</span>
+      <span class="stat-value">${r.is_clean?'一致':'差异'}：匹配${r.matched} | 本地独有${r.local_only} | 交易所独有${r.exchange_only} | 不一致${r.mismatched}</span>
+    </div>`;
+  }
+  document.getElementById('reconciliation').innerHTML=reconHtml||'<span class="stat-label" style="color:#8b949e">暂无对账数据</span>';
+  document.getElementById('recon-refresh').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+
+function toggleRow(id){
+  const el=document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+async function emergencyStop(){
+  if(!confirm('确认激活紧急停止？所有开仓将被阻止。')) return;
+  await fetchAuthPost('/admin/emergency-stop');
+  refresh();
+}
+async function resumeTrading(){
+  if(!confirm('确认恢复交易？')) return;
+  await fetchAuthPost('/admin/resume');
+  refresh();
+}
+async function manualClose(strategyId,exchange,symbol){
+  if(!confirm(`确认手动平仓？\n策略: ${strategyId}\n交易所: ${exchange}\n交易对: ${symbol}`)) return;
+  const r=await fetchAuthPost('/admin/close-position',{strategy_id:strategyId,exchange,symbol});
+  alert(r.status==='ok'?'✅ 平仓成功':'❌ 平仓失败: '+(r.reason||r.status));
+  refresh();
+}
+
+// Exchange config modal
+let currentExId='';
+function openExModal(exId,label,needsPassphrase){
+  currentExId=exId;
+  document.getElementById('ex-modal-title').textContent='配置 '+label;
+  document.getElementById('ex-api-key').value='';
+  document.getElementById('ex-api-secret').value='';
+  document.getElementById('ex-passphrase').value='';
+  document.getElementById('ex-testnet').checked=true;
+  document.getElementById('ex-passphrase-group').style.display=needsPassphrase?'':'none';
+  document.getElementById('ex-modal').style.display='flex';
+}
+function closeExModal(){document.getElementById('ex-modal').style.display='none';}
+async function saveExConfig(){
+  const body={
+    exchange: currentExId,
+    api_key: document.getElementById('ex-api-key').value.trim(),
+    api_secret: document.getElementById('ex-api-secret').value.trim(),
+    api_passphrase: document.getElementById('ex-passphrase').value.trim(),
+    testnet: document.getElementById('ex-testnet').checked,
+  };
+  if(!body.api_key||!body.api_secret){alert('API Key 和 Secret 不能为空'); return;}
+  closeExModal();
+  const r=await fetchAuthPost('/admin/exchange-config',body);
+  alert(r.connected?`✅ ${currentExId} 连接成功`:`⚠️ 配置已保存，连接失败: ${r.error||''}`);
+  refresh();
+}
+
+// Token management
+function getToken(){
+  return new URLSearchParams(window.location.search).get('token')||localStorage.getItem('bridge_auth_token')||'';
+}
+function saveToken(t){localStorage.setItem('bridge_auth_token',t); token=t;}
+function submitToken(){
+  const v=document.getElementById('token-input').value.trim();
+  if(v) saveToken(v);
+  document.getElementById('token-modal').style.display='none';
+  refresh();
+}
+function clearToken(){localStorage.removeItem('bridge_auth_token'); token=''; document.getElementById('token-modal').style.display='flex';}
+
+// Init
+token=getToken();
+if(!token){document.getElementById('token-modal').style.display='flex';}
+else{refresh();}
+setInterval(refresh,POLL_MS);
+</script>
+</body>
+</html>

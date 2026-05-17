@@ -1,0 +1,14 @@
+[Unit]
+Description=Sisie Strategy Bridge — TradingView to Exchange
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sisie-bridge
+EnvironmentFile=/etc/sisie-bridge.env
+ExecStart=/opt/sisie-bridge/venv/bin/python -m sisie_bridge.main --config /opt/sisie-bridge/configs/bridge.yaml
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

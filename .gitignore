@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+venv/
+data/
+logs/
+*.db
+*.db-shm
+*.db-wal
+.env
+deploy/bridge.env
