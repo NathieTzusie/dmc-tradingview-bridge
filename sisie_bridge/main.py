@@ -1,5 +1,5 @@
 """
-live_bridge 主入口
+Sisie Strategy Bridge 主入口
 
 接线所有模块：
   1. 加载配置
@@ -66,7 +66,7 @@ def setup_logging(debug: bool = False):
         handlers=[logging.StreamHandler(sys.stdout)],
     )
 
-log = logging.getLogger("live_bridge")
+log = logging.getLogger("sisie_bridge")
 
 
 # ─────────────────────────────────────────────────────────────────────

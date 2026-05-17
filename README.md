@@ -26,7 +26,7 @@ pip install -e .                      # Bridge 本体
 ### 2. 配置
 
 ```bash
-cp configs/bridge.yaml configs/bridge.yaml
+# 编辑 configs/bridge.yaml 配置
 cp deploy/bridge.env.example deploy/bridge.env
 # 编辑 deploy/bridge.env，填入你的 API key 和 token
 ```

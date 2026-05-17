@@ -51,7 +51,7 @@ risk:
   global_max_usdt: 1000
   max_leverage_ratio: 5.0
   require_confirmation: false
-state_db_path: data/live_bridge_state.db
+state_db_path: data/bridge_state.db
 strategies:
   btp_30m:
     allow_reverse: true
