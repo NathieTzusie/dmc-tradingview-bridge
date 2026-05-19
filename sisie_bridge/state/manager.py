@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from sisie_core.models.order import OrderSide, PositionState
+from sisie_bridge.core.models.order import OrderSide, PositionState
 
 log = logging.getLogger(__name__)
 

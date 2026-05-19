@@ -17,9 +17,9 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from sisie_core.exchanges.base import ExchangeAdapter
+from sisie_bridge.core.exchanges.base import ExchangeAdapter
 from sisie_bridge.state.manager import PositionStateManager
-from sisie_core.models.order import LivePosition, OrderSide, OrderStatus
+from sisie_bridge.core.models.order import LivePosition, OrderSide, OrderStatus
 
 log = logging.getLogger(__name__)
 

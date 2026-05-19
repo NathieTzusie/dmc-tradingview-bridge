@@ -32,14 +32,14 @@ from typing import Dict, Optional
 
 import uvicorn
 
-from sisie_core.config import BridgeConfig, TIER1_EXCHANGES
-from sisie_core.exchanges.base import ExchangeAdapter
-from sisie_core.exchanges.ccxt_adapter import CcxtCexAdapter, ExchangeAdapterFactory
-from sisie_core.models.order import (
+from sisie_bridge.core.config import BridgeConfig, TIER1_EXCHANGES
+from sisie_bridge.core.exchanges.base import ExchangeAdapter
+from sisie_bridge.core.exchanges.ccxt_adapter import CcxtCexAdapter, ExchangeAdapterFactory
+from sisie_bridge.core.models.order import (
     OrderRequest, OrderSide, OrderStatus, PositionState,
 )
-from sisie_core.models.signal import InternalSignal, SignalAction
-from sisie_core.risk.manager import RiskManager, RiskConfig, RiskCheckResult
+from sisie_bridge.core.models.signal import InternalSignal, SignalAction
+from sisie_bridge.core.risk.manager import RiskManager, RiskConfig, RiskCheckResult
 from sisie_bridge.state.manager import PositionStateManager
 from sisie_bridge.state.reconciler import PositionReconciler
 from sisie_bridge.webhook.server import create_app

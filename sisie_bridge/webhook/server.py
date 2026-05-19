@@ -18,11 +18,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from pathlib import Path
 
-from sisie_core.config import BridgeConfig
+from sisie_bridge.core.config import BridgeConfig
 from sisie_bridge.signal_normalizer import normalize_tradingview_webhook
-from sisie_core.risk.manager import RiskManager
+from sisie_bridge.core.risk.manager import RiskManager
 from sisie_bridge.state.manager import PositionStateManager
-from sisie_core.models.signal import InternalSignal
+from sisie_bridge.core.models.signal import InternalSignal
 
 log = logging.getLogger(__name__)
 
@@ -298,7 +298,7 @@ def create_app(
             raise HTTPException(status_code=400, detail="缺少 exchange 字段")
 
         # 更新配置对象
-        from sisie_core.config import ExchangeConfig, ExchangeCredentials
+        from sisie_bridge.core.config import ExchangeConfig, ExchangeCredentials
         ex_cfg = config.exchanges.get(ex_name) or ExchangeConfig()
         ex_cfg.enabled = True
         ex_cfg.credentials = ExchangeCredentials(
@@ -310,7 +310,7 @@ def create_app(
         config.exchanges[ex_name] = ex_cfg
 
         # 创建新 adapter 并尝试连接
-        from sisie_core.exchanges.ccxt_adapter import ExchangeAdapterFactory
+        from sisie_bridge.core.exchanges.ccxt_adapter import ExchangeAdapterFactory
         new_adapter = ExchangeAdapterFactory.create(
             exchange_name=ex_name,
             api_key=ex_cfg.credentials.api_key,
@@ -344,7 +344,7 @@ def create_app(
         if not all([strategy_id, exchange, symbol]):
             raise HTTPException(status_code=400, detail="缺少 strategy_id/exchange/symbol")
 
-        from sisie_core.models.signal import InternalSignal, SignalAction, OrderType, QuantityMode
+        from sisie_bridge.core.models.signal import InternalSignal, SignalAction, OrderType, QuantityMode
         import uuid
         sig = InternalSignal(
             strategy_id=strategy_id,

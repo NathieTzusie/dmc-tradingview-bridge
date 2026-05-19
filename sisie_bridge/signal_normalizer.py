@@ -11,10 +11,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from sisie_core.models.signal import (
+from sisie_bridge.core.models.signal import (
     InternalSignal, SignalAction, OrderType, QuantityMode,
 )
-from sisie_core.config import BridgeConfig
+from sisie_bridge.core.config import BridgeConfig
 
 log = logging.getLogger(__name__)
 

@@ -1,99 +1,119 @@
-# 🦞 Sisie Strategy Bridge
+# 🦞 DMC TradingView Bridge
 
 TradingView Webhook → Multi-Exchange Trade Execution Bridge
 
-独立部署的单用户策略桥接器。接收 TradingView Alert，风控检查后在 Binance/Bybit/OKX 等交易所实盘下单。
+**单用户版**— 独立部署，接收 TradingView Alert，风控检查后在 Binance/Bybit/OKX 等交易所实盘下单。
+
+> 无外部依赖，开箱即用。`pip install` + `.env` + 一键启动。
+
+> ⚠️ **安全提醒：** `.env` 文件包含你的交易所 API Key 和 Token，**永遠不要提交到 Git**。
+> 默認的 `.gitignore` 已包含 `.env`，但請 double check 不要用 `git add --force` 意外提交。
 
 ---
 
-## 快速开始
+## 🚀 快速开始（30 秒）
 
 ### 前置要求
 - Python 3.10+
-- 至少一个交易所的 testnet API key（[Binance testnet](https://testnet.binancefuture.com) 推荐）
+- 一个交易所的 API key（[Binance testnet](https://testnet.binancefuture.com) 推荐新手）
 
-### 1. 安装
+### Option 1: Docker（推荐）
 
 ```bash
-git clone <repo-url>
-cd sisie-strategy-bridge
+git clone https://github.com/NathieTzusie/dmc-tradingview-bridge
+cd dmc-tradingview-bridge
+
+cp .env.example .env
+# 编辑 .env，填入你的 API key 和 Token
+
+docker compose up -d
+open http://localhost:8080/dashboard
+```
+
+### Option 2: 本地运行
+
+```bash
+git clone https://github.com/NathieTzusie/dmc-tradingview-bridge
+cd dmc-tradingview-bridge
+
 python3 -m venv venv
 source venv/bin/activate
-pip install -e /path/to/sisie-core    # sisie-core 共享库
-pip install -e .                      # Bridge 本体
-```
+pip install .
 
-### 2. 配置
+cp .env.example .env
+# 编辑 .env，填入你的 API key 和 Token
 
-```bash
-# 编辑 configs/bridge.yaml 配置
-cp deploy/bridge.env.example deploy/bridge.env
-# 编辑 deploy/bridge.env，填入你的 API key 和 token
-```
-
-**最小配置**（只开 Binance testnet）：
-```bash
-export TV_BRIDGE_AUTH_TOKEN="your-random-token-here"
-export TV_BRIDGE_BINANCE_API_KEY="your-binance-testnet-key"
-export TV_BRIDGE_BINANCE_API_SECRET="your-binance-testnet-secret"
-export TV_BRIDGE_BINANCE_TESTNET="true"
-```
-
-### 3. 启动
-
-```bash
-source deploy/bridge.env
 python -m sisie_bridge.main --config configs/bridge.yaml
 ```
 
-### 4. 验证
+### Option 3: 一键部署（服务器）
+
+```bash
+curl -sL https://raw.githubusercontent.com/NathieTzusie/dmc-tradingview-bridge/main/deploy/install.sh | sudo bash
+```
+
+安装完成后编辑 `.env`，然后重启服务。
+
+---
+
+## ✅ 验证
 
 ```bash
 # 健康检查
 curl http://localhost:8080/health
 
-# Dashboard (浏览器打开)
+# 打开 Dashboard
 open http://localhost:8080/dashboard
 
 # 测试信号
-curl -X POST "http://localhost:8080/webhook?token=your-token" \
+curl -X POST "http://localhost:8080/webhook?token=<你的 Token>" \
   -H "Content-Type: application/json" \
   -d '{"strategy_id":"btp_30m","action":"buy","symbol":"ETH/USDT:USDT","exchange":"binance"}'
 ```
 
 ---
 
-## 生产部署
+## 📋 配置
 
-### Docker
-```bash
-docker build -t sisie-bridge .
-docker run -d --env-file deploy/bridge.env -p 8443:8080 sisie-bridge
-```
+所有配置通过环境变量（`.env` 文件）进行：
 
-### Systemd
-```bash
-cp deploy/bridge.service /etc/systemd/system/
-sudo cp deploy/bridge.env /etc/sisie-bridge.env
-sudo chmod 600 /etc/sisie-bridge.env
-sudo systemctl enable --now sisie-bridge
-```
+| 变量 | 说明 | 必填 |
+|------|------|:----:|
+| `TV_BRIDGE_AUTH_TOKEN` | Webhook 鉴权 Token | ✅ |
+| `TV_BRIDGE_BINANCE_API_KEY` | Binance API Key | 可选 |
+| `TV_BRIDGE_BINANCE_API_SECRET` | Binance API Secret | 可选 |
+| `TV_BRIDGE_BINANCE_TESTNET` | Binance Testnet | 可选 |
+| `TV_BRIDGE_BYBIT_API_KEY` | Bybit API Key | 可选 |
+| `TV_BRIDGE_OKX_API_KEY` | OKX API Key | 可选 |
+| `TV_BRIDGE_EMERGENCY_STOP` | 紧急停止开关 | 可选 |
 
-### Nginx 反向代理
-```bash
-cp deploy/nginx.conf.example /etc/nginx/sites-enabled/bridge
-sudo nginx -t && sudo systemctl reload nginx
-```
+无需编辑 YAML 配置文件即可运行。高级配置参见 `configs/bridge.yaml`。
 
 ---
 
-## TradingView 集成
+## 📊 Dashboard
 
-详见 [docs/tv_webhook_integration_spec.md](docs/tv_webhook_integration_spec.md)
+Dashboard 在 `http://localhost:8080/dashboard`，功能：
 
-Webhook URL: `https://your-server/webhook?token=<TV_BRIDGE_AUTH_TOKEN>`
+- 📍 交易所实时状态（连接/余额）
+- 💰 当前持仓（多交易所汇总）
+- 📜 交易历史
+- 🛡️ Emergency Stop
+- 🔧 交易所 API Key 自助管理
 
-支持的 Alert 消息格式：
+> 手机自动适配，支持移动端访问。
+
+---
+
+## 🔗 TradingView 集成
+
+Webhook URL：
+```
+https://你的域名/webhook?token=<TV_BRIDGE_AUTH_TOKEN>
+```
+
+支持的 Alert 格式：
+
 ```json
 {
   "strategy_id": "btp_30m",
@@ -103,12 +123,31 @@ Webhook URL: `https://your-server/webhook?token=<TV_BRIDGE_AUTH_TOKEN>`
 }
 ```
 
+支持的 action：`buy` / `sell` / `close` / `reverse` / `reduce`
+
+详见 [docs/tv_webhook_integration_spec.md](docs/tv_webhook_integration_spec.md)
+
 ---
 
-## 支持的交易所
+## 🏗️ 架构
+
+```
+TradingView Alert → Webhook (/webhook)
+  → 鉴权 (token)
+  → 信号标准化 (signal_normalizer)
+  → 风控 (risk/manager: Emergency Stop / 频率限制 / 仓位上限)
+  → 状态机 (开仓/平仓/反手/部分平)
+  → 下单 (CCXT → 交易所)
+  → 确认成交 → 更新本地状态 (SQLite)
+  → 对账 (state/reconciler, 5min 间隔)
+```
+
+---
+
+## 🏪 支持的交易所
 
 | 交易所 | Testnet | 生产 |
-|--------|---------|------|
+|--------|:-------:|:----:|
 | Binance | ✅ | ✅ |
 | Bybit | ✅ | ✅ |
 | OKX | ✅ | ✅ |
@@ -119,23 +158,35 @@ Webhook URL: `https://your-server/webhook?token=<TV_BRIDGE_AUTH_TOKEN>`
 
 ---
 
-## 架构
+## 📦 部署清单
 
-```
-TradingView Alert → Webhook (/webhook)
-  → 鉴权 (token)
-  → 信号标准化 (signal_normalizer)
-  → 风控 (risk/manager: Emergency Stop / 频率限制 / 仓位上限 / 杠杆上限)
-  → 状态机 (main.py: 开仓/平仓/反手/部分平)
-  → 下单 (exchanges/ adapter → CCXT)
-  → 确认成交 → 更新本地状态 (SQLite)
-  → 对账 (state/reconciler, 5min 间隔)
-```
+部署到生产环境：
 
-共享核心：[sisie-core](https://github.com/your-org/sisie-core) — models / exchanges / risk / config
+1. 配置 SSL（推荐 Nginx + Let's Encrypt）：
+   ```bash
+   sudo apt install nginx certbot
+   sudo certbot --nginx -d 你的域名
+   ```
+   参考 `deploy/nginx.conf.example`
+
+2. 推荐使用 systemd：
+   ```bash
+   sudo cp deploy/bridge.service /etc/systemd/system/dmc-bridge.service
+   # 编辑 dmc-bridge.service 修正路径
+   sudo systemctl enable --now dmc-bridge
+   ```
+
+3. 可选：配置 Discord 通知（在 `configs/bridge.yaml` 中设置）
 
 ---
 
-## 许可证
+## ⚖️ 许可证
 
-[MIT](LICENSE)
+MIT License — 自由使用、修改、分发。
+
+---
+
+## 🔗 相关项目
+
+- - [DMC-Sisie-Quantive](https://github.com/NathieTzusie/DMC-Sisie-Quantive) — 量化策略回测框架
+- [Sisie-Quantive](https://github.com/NathieTzusie/Sisie-Quantive) — 多用户版策略桥接平台（Sisie 私有）
